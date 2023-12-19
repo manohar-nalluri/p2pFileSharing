@@ -10,7 +10,7 @@ const peerConnection=new RTCPeerConnection();
 var dataConnection;
 function generateOffer(){
     dataConnection=peerConnection.createDataChannel('channel');
-    dataConnection.onopen = e=> document.getElementById('ans').innerHTML='Connection going from sender';
+    dataConnection.onopen = e=> document.getElementById('ans').innerHTML='This is sender connected to receiver with dataChannel';
     dataConnection.onmessage = e =>document.getElementById('data').innerHTML="Just got the message"+e.data;
     peerConnection.onicecandidate = e => document.getElementById('offer').innerHTML=JSON.stringify(peerConnection.localDescription);
     peerConnection.createOffer().then((offer)=>peerConnection.setLocalDescription(offer))
@@ -20,7 +20,7 @@ function  generateAnswer() {
     peerConnection.ondatachannel = e =>{
         peerConnection.dc=e.channel;
         peerConnection.dc.onmessage = e=> rearrangeData(e);
-        peerConnection.dc.onopen = e => document.getElementById('ans').innerHTML='Connection going from receiver';
+        peerConnection.dc.onopen = e => document.getElementById('ans').innerHTML='This is receiver connected to sender with dataChannel';
     }
     peerConnection.setRemoteDescription(offer)
     peerConnection.createAnswer().then((data)=>peerConnection.setLocalDescription(data).then((e)=>document.getElementById('answer').innerHTML=JSON.stringify(peerConnection.localDescription)));
@@ -81,7 +81,7 @@ document.getElementById('download').addEventListener("click",()=>{
     const received = new Blob(receiveBuffer);
     const downloadLink = document.createElement('a');
     downloadLink.href = URL.createObjectURL(received);
-    downloadLink.download = 'assembled_file.mp4';
+    downloadLink.download = 'assembled_file.pdf';
     document.body.appendChild(downloadLink);
     downloadLink.click();
     document.body.removeChild(downloadLink);
