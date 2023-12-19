@@ -1,0 +1,69 @@
+body{
+    background-color: #18191d;
+    color: #ffffff;
+    font-family: "Helvetica", "Arial", sans-serif;
+}
+.container{
+    
+    display: flex;
+    justify-content: space-between;
+}
+.container1{
+    height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+ } 
+.container2{
+    
+    display: flex;
+    justify-content: space-evenly;
+}
+.container1>*{
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.card{
+    width: 80%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 2px dotted whitesmoke;
+}
+.uploadIcon{
+    width: 50%;
+}
+@media screen and (max-width:800px){
+    .container1{
+        height: auto;
+        display: block;
+    }
+    
+    .container1>*{
+        height: 60vh;
+        display: flex;
+        width: 100%;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+    }
+    .card{
+        width: 80%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .uploadIcon{
+        
+        width: 50%;
+    }
+    .container2{
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+}
