@@ -1,42 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="main.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="main.css">
+  <title>Document</title>
 </head>
 <body>
-    <div class="container">
-        <h1>WebRTC FileSharing</h1>
-        <h3>About</h3>
-    </div>
-    <div class="container1">
-        <h2>File sharing made easy you can easyly share files without uploading to any server</h2>
-        <div class="imageUpload">
-            <div class="card">
-            <img src="./assets/upload.svg" class="uploadIcon">
-            <p>Drag and drop or click here to select file</p>
-            </div>
-        </div>
-    </div>
-    <h2 class="wk">How it Works?</h2>
-    <div class="container2">
-        <h3>upload</h3>
-        <h3>generate link</h3>
-        <h3>share link</h3>
-    </div>
-    <h1 id="ans"></h1>
-    <input type="file"  id="fileInput">
-    <textarea  id="offer" cols="30" rows="10"></textarea>
-    <button id="createOffer">createOffer</button>
-    <textarea  id="answer" cols="30" rows="10"></textarea>
-    <button id="receiveOffer">generateAnswer</button>
-    <button id="acceptAnswer">acceptAnswer</button>
-    <br/>
-    <h1 id="data"></h1>
-    <button id="Send">sendFile</button>
-    <button id="download">downloadFile</button>
+  <header >
+    <img src="assets/directDrop1.png" alt="WebsiteLogo" width="200">
+    <p>My ID:NJC1234</p>
+  </header>
+  <div class="display">
+  <div class="card">
+  <h3>Share anything, instantly. No servers, no stress.</h3>
+  <div class="inputArea">
+  <input type="text" placeholder="Enter peers ID">
+  <div style="width: 10px;"></div>
+  <button>Connect</button>
+</div>
+  <label for="file">
+    <input type="file" id="file" hidden/>
+    Upload file</label>
+    <div id="selectedFileDisplay"></div>
+  <img src="assets/Send.png" alt="SendButton" width="150" id="send">
+  <div class="progressIndicator" >
+    <h6>progress Indicator</h6>
+    <button>cancel</button>
+  </div>
+</div>
+</div>
+<div style="height: 25px;"></div>
 </body>
-<script src="./index.js"></script>
+<script src="index.js"></script>
 </html>
