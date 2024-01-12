@@ -100,14 +100,14 @@ const sendFile = async() => {
 
 }
 document.getElementById("send").addEventListener("click", function handleClick() {
+  if (!fileInput.files[0]){
+    alert('Please select a file');
+    return
+  }
   this.removeEventListener('click',handleClick);
   console.log('clicked');
   
   document.getElementById("send").setAttribute('src','../assets/disabledSend.png');
-
-
-  
-  
 }
 );
 fileInput.addEventListener('change', function () {
