@@ -103,7 +103,7 @@ document.getElementById("send").addEventListener("click", function handleClick()
   this.removeEventListener('click',handleClick);
   console.log('clicked');
   
-  document.getElementById("send").setAttribute('src','assets/disabledSend.png');
+  document.getElementById("send").setAttribute('src','../assets/disabledSend.png');
 
 
   

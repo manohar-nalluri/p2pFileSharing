@@ -1,33 +1,31 @@
 html{
     height: 100%;
+    margin: 0;
 }
-
 body{
-    min-height: 100%;
-    background: linear-gradient(to top, #a18cd1 , #fbc2eb );
-
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    margin: 0;
 }
-
-
-
+.page{
+    flex: 1;
+    background: linear-gradient(to top, #a18cd1 , #fbc2eb );
+}
 header{
     display: flex;
     justify-content: space-between;
-    
 }
 header>p{
     font-weight: 600;
     margin-right: 10px;
     color:rgb(60, 60, 175);
 }
-
 .progressIndicator{
     display: none;
     justify-content: center;
     align-items: center;
 }
-
-
 .card{
    margin-left: 15%;
    margin-top: 50px;
@@ -63,8 +61,6 @@ color: #ff01cf; */
     justify-content: center;
     
 }
-
-
 label{
     padding: 10px 0;
   height: 200px; /* Adjust the height as needed */
