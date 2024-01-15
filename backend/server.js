@@ -25,7 +25,9 @@ io.on("connection",(socket)=>{
     console.log("new user connected",socket.id)
     const nanoid = customAlphabet(alphabets, 6)
     let id=nanoid()
-    console.log(id)
+    while(users[id]){
+        id=nanoid()
+    }
     socket.emit("myId",id)
     socketToUser[socket.id]=id
     users[id]={
@@ -36,17 +38,18 @@ io.on("connection",(socket)=>{
         connectedTo:''
     }
     socket.on('peerConnect',(e)=>{
+        try{
         console.log('wanting to connect to',e.peer)
         if (!users[e.peer]){
             console.log('No user found')
-            socket.emit('connetionStatus',{
+            socket.emit('connectionStatus',{
                 code:0,
                 message:'No user Found'
             })
         }else{
              let initiator=socketToUser[socket.id]
              if(users[initiator].connected==true){
-                socket.emit('connetionStatus',{
+                socket.emit('connectionStatus',{
                              code:0,
                              message:'Already connected to another user'
                          })
@@ -63,10 +66,18 @@ io.on("connection",(socket)=>{
                 users[initiator].connectedTo=e.peer;
                 users[e.peer].connected='Connecting';
                 users[e.peer].connectedTo=initiator;
+                users[initiator].socket.emit('connectionStatus',{
+                    code:0,
+                    message:'Waiting for peer to accept connection'
+                })
              }
+    }}
+    catch(error){
+        console.log('error while connecting to peer')
     }}
 )
 socket.on('connectionEstablished',(e)=>{
+    try{
     let peer=socketToUser[socket.id]
     users[peer].connected=true;
     let peer2=users[peer].connectedTo
@@ -80,6 +91,10 @@ socket.on('connectionEstablished',(e)=>{
         message:'Connection established'
     })
     console.log('connection established')
+}catch(error){
+    console.log('error while establishing connection')
+
+}
 })
 socket.on('sendAnswer',(e)=>{
     try {
@@ -88,7 +103,7 @@ socket.on('sendAnswer',(e)=>{
             users[e.peer].socket.emit('setAnswer',e.iceCandidate)
         }
     } catch (error) {
-        
+        console.log('error while sending answer',error)
     }
 })
 socket.on('breakConnection',(id)=>{

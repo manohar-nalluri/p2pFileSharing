@@ -67,24 +67,28 @@ socket.on("myId",(id)=>{
   myId=id
 })
 socket.on('connectionStatus',(e)=>{
-  console.log('connection came')
+  console.log('connection came',e)
   if (e.code==1){
+    document.getElementById('message').innerHTML=''
     document.getElementById('connect').disabled=false
     document.getElementById('connect').innerHTML='Disconnect'
     connected=true
   }
   else{
-    if (e.message='Disconnect'){
-      connected=false
-    iceCandidate=''
-    peerId=''
-    dataConnection=null
-    document.getElementById('connect').innerHTML='Connect'
+    if (e.message=='Disconnect'){
+      connected=false;
+      iceCandidate='';
+      peerId='';
+      dataConnection=null;
+      document.getElementById('connect').disabled=false;
+      document.getElementById('connect').innerHTML='Connect';
     }
     else{
-  console.log(e.message)
-  document.getElementById('connect').disabled=false
-  document.getElementById('connect').innerHTML='Connect'}
+      console.log('no user found');
+      document.getElementById('message').innerHTML=e.message;
+      document.getElementById('connect').disabled=false;
+      document.getElementById('connect').innerHTML='Connect';
+    }
 }
 
 })
@@ -253,10 +257,11 @@ fileInput.addEventListener('change', function () {
 // })
 
 document.getElementById('connect').addEventListener('click',async()=>{
-  
+  document.getElementById('message').innerHTML=''
   if (document.getElementById('connect').innerHTML=='Disconnect'){
     socket.emit('breakConnection',myId) 
   }else{
+    
   document.getElementById('connect').disabled=true
   document.getElementById('connect').innerHTML='Connecting'
   if(peerIceCandidate==''){

@@ -57,7 +57,10 @@ input[type="text"]{
     border-radius: 8px;
     border: 1px;
 }
-
+#message{
+    color: red;
+    font-weight: 600;
+}
 label{
     padding: 10px 0;
   height: 200px; /* Adjust the height as needed */
