@@ -1,4 +1,8 @@
-// alert('Added javaScript')
+let myId=''
+let connected=false
+let peerIceCandidate=''
+let peerId=''
+let socket=io('http://localhost:3000');
 const CHUNK_SIZE = 16 * 1024;
 let fileChunks = [];
 const fileInput = document.getElementById('file')
@@ -9,30 +13,122 @@ fileReader = new FileReader();
 let offset = 0;
 let receiveBuffer = [];
 const peerConnection = new RTCPeerConnection();
-var dataConnection;
-function generateOffer() {
+let dataConnection;
+
+
+
+
+function initialwebRtc(){
   dataConnection = peerConnection.createDataChannel('dataChannel');
-  dataConnection.onopen = e => document.getElementById('ans').innerHTML = 'This is sender connected to receiver with dataChannel';
-  dataConnection.onmessage = e => document.getElementById('data').innerHTML = "Just got the message" + e.data;
-  peerConnection.onicecandidate = e => document.getElementById('offer').innerHTML = JSON.stringify(peerConnection.localDescription);
-  peerConnection.createOffer().then((offer) => peerConnection.setLocalDescription(offer))
+  dataConnection.onopen = () => console.log('peer connection open');
+  dataConnection.onmessage = (e) => document.getElementById('data').innerHTML = "Just got the message" + e.data;
+  peerConnection.onicecandidate = e => {console.log('ice candidate generate')};
 }
-function generateAnswer() {
-  offer = JSON.parse(document.getElementById('offer').value)
-  peerConnection.ondatachannel = e => {
-    peerConnection.dc = e.channel;
-    peerConnection.dc.onmessage = e => rearrangeData(e);
-    peerConnection.dc.onopen = e => document.getElementById('ans').innerHTML = 'This is receiver connected to sender with dataChannel';
+async function localConnection(){
+  initialwebRtc()
+let offer=await peerConnection.createOffer()
+peerConnection.setLocalDescription(offer)
+return offer
+}
+function sendOffer (Id,offer) {
+  var data={
+    peer:Id,
+    iceCandidate:offer
   }
-  peerConnection.setRemoteDescription(offer)
-  peerConnection.createAnswer().then((data) => peerConnection.setLocalDescription(data).then((e) => document.getElementById('answer').innerHTML = JSON.stringify(peerConnection.localDescription)));
+  console.log(data)
+  socket.emit('peerConnect',data);
 }
-function addAnswer() {
-  ans = JSON.parse(document.getElementById('answer').value)
-  if (!peerConnection.currentRemoteDescription) {
-    peerConnection.setRemoteDescription(ans).then((e) => document.getElementById('ans').innerHTML = 'Connection Established');
+
+async function generateAnswer(){
+  try {
+    let answer =await peerConnection.createAnswer()
+    peerConnection.setLocalDescription(answer)
+    return answer
+  } catch (error) {
+    console.log('error while setting local description')
   }
+  
 }
+function sendAnswer(ans){
+  data={
+    myId:myId,
+    peer:peerId,
+    iceCandidate:ans
+
+  }
+  socket.emit('sendAnswer',data);
+  console.log('answer sent')
+}
+
+socket.on('connect',()=>{ console.log('connected')})
+socket.on("myId",(id)=>{
+  console.log(id)
+  document.getElementById('myId').innerHTML=`My Id:${id}`
+  myId=id
+})
+socket.on('connectionStatus',(e)=>{
+  console.log('connection came')
+  if (e.code==1){
+    document.getElementById('connect').disabled=false
+    document.getElementById('connect').innerHTML='Disconnect'
+    connected=true
+  }
+  else{
+    if (e.message='Disconnect'){
+      connected=false
+    iceCandidate=''
+    peerId=''
+    dataConnection=null
+    document.getElementById('connect').innerHTML='Connect'
+    }
+    else{
+  console.log(e.message)
+  document.getElementById('connect').disabled=false
+  document.getElementById('connect').innerHTML='Connect'}
+}
+
+})
+socket.on('wantToConnect',(e)=>{
+  console.log('received offer')
+  if (connected==false){
+    document.getElementById('peersId').value=e.peer;
+    console.log(e);
+    peerIceCandidate=e.iceCandidate;
+    peerId=e.peer;
+  }
+})
+socket.on('setAnswer',(e)=>{
+  console.log('received answer')
+  try {
+      peerConnection.setRemoteDescription(e).then((e) => socket.emit('connectionEstablished',1));
+      console.log('established')
+  } catch (error) {
+    console.log('something went wrong',error)
+  }
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+// function generateAnswer() {
+//   offer = JSON.parse(document.getElementById('offer').value)
+//   peerConnection.ondatachannel = e => {
+//     peerConnection.dc = e.channel;
+//     peerConnection.dc.onmessage = e => rearrangeData(e);
+//     peerConnection.dc.onopen = e => document.getElementById('ans').innerHTML = 'This is receiver connected to sender with dataChannel';
+//   }
+//   peerConnection.setRemoteDescription(offer)
+//   peerConnection.createAnswer().then((data) => peerConnection.setLocalDescription(data).then((e) => document.getElementById('answer').innerHTML = JSON.stringify(peerConnection.localDescription)));
+// }
 
 function sendData() {
     let message = webRTCbuffer.shift();
@@ -64,11 +160,7 @@ function sendData() {
       }
     }
 }
-// document.getElementById('createOffer').addEventListener("click", generateOffer);
 
-// document.getElementById('receiveOffer').addEventListener("click", generateAnswer);
-
-// document.getElementById('acceptAnswer').addEventListener("click", addAnswer);
 
 // document.getElementById('Send').addEventListener("click", () => { readSlice(0) });
 webRTCbuffer = []
@@ -159,3 +251,25 @@ fileInput.addEventListener('change', function () {
 //   downloadLink.click();
 //   document.body.removeChild(downloadLink);
 // })
+
+document.getElementById('connect').addEventListener('click',async()=>{
+  
+  if (document.getElementById('connect').innerHTML=='Disconnect'){
+    socket.emit('breakConnection',myId) 
+  }else{
+  document.getElementById('connect').disabled=true
+  document.getElementById('connect').innerHTML='Connecting'
+  if(peerIceCandidate==''){
+    var peersId=document.getElementById('peersId').value
+    console.log('peers id is:',peersId)
+    var offer=await localConnection()
+    sendOffer(peersId,offer)
+}
+else{
+  initialwebRtc()
+  peerConnection.setRemoteDescription(peerIceCandidate)
+  var answer=await generateAnswer()
+  sendAnswer(answer)
+}
+  }
+})

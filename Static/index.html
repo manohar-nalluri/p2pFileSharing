@@ -14,20 +14,21 @@
 <meta name="msapplication-TileColor" content="#da532c">
 <meta name="msapplication-config" content="assets/favicon/browserconfig.xml">
 <meta name="theme-color" content="#ffffff">
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 <body>
   <div class="page">
   <header >
     <img src="assets/directDrop1.png" alt="WebsiteLogo" width="200">
-    <p>My ID:NJC1234</p>
+    <p id="myId">My Id:</p>
   </header>
   <div class="display">
   <div class="card">
   <h3>Share anything, instantly. No servers, no stress.</h3>
-  <div class="inputArea">
-  <input type="text" placeholder="Enter peers ID">
+  <div class="inputArea" >
+  <input type="text" placeholder="Enter peers ID" id="peersId">
   <div style="width: 10px;"></div>
-  <button>Connect</button>
+  <button id="connect">Connect</button>
 </div>
   <label for="file">
     <input type="file" id="file" hidden/>
