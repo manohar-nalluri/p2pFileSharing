@@ -14,7 +14,7 @@ const server=http.createServer(app,{
 })
 const io=new Server(server,{
     cors:{
-        origin:"*"
+        origin:"https://directdrop-ymtd5.ondigitalocean.app"
     }
 })
 debug('socket.io')(io);
@@ -130,6 +130,28 @@ socket.on('breakConnection',(id)=>{
         })
     } catch (error) {
         console.log('Error while disconnecting')
+    }
+})
+
+socket.on('closing',()=>{
+    
+    try {
+        let user=socketToUser[socket.id]
+        var peer=users[user].connectedTo
+        if(users[peer]){
+            users[peer].connected=false
+            users[peer].connectedTo=''
+            users[peer].iceCandidate=''
+            users[peer].socket.emit('connectionStatus',{
+                code:0,
+                message:'Disconnect',
+            })
+        }
+        delete users[user];
+        console.log('user disconnected and length is:',Object.keys(users).length)
+        console.log(users)
+    } catch (error) {
+        console.log('Error while closing')
     }
 })
 })

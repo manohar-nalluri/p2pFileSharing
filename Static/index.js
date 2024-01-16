@@ -2,7 +2,7 @@ let myId=''
 let connected=false
 let peerIceCandidate=''
 let peerId=''
-let socket=io('http://localhost:3000');
+let socket=io('https://filetransfer-ym3b.onrender.com');
 const CHUNK_SIZE = 16 * 1024;
 let fileChunks = [];
 const fileInput = document.getElementById('file')
@@ -14,7 +14,7 @@ let offset = 0;
 let receiveBuffer = [];
 const peerConnection = new RTCPeerConnection();
 let dataConnection;
-
+let webRTCbuffer = []
 
 
 
@@ -167,7 +167,7 @@ function sendData() {
 
 
 // document.getElementById('Send').addEventListener("click", () => { readSlice(0) });
-webRTCbuffer = []
+
 const OFF_SET = 16 * 1024
 const MAX_OFFSET = 10 * 1024 * 1024
 async function readFileAsArrayBuffer(f) {
@@ -278,3 +278,9 @@ else{
 }
   }
 })
+window.addEventListener('beforeunload',()=>{
+  socket.emit('closing','fd')
+
+})
+
+
