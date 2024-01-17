@@ -15,7 +15,7 @@ const server=http.createServer(app,{
 })
 const io=new Server(server,{
     cors:{
-        origin:"https://directdrop-ymtd5.ondigitalocean.app/"
+        origin:"https://directdrop-ymtd5.ondigitalocean.app"
     }
 })
 debug('socket.io')(io);
