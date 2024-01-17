@@ -87,7 +87,7 @@ label:hover{
 
 
 .progressIndicator{
-    display: flex;
+    display: none;
     width: 60%;
     justify-content: center;
     align-items: center;

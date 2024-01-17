@@ -3,7 +3,7 @@ let connected=false
 let peerIceCandidate=''
 let iceC=[]
 let peerId=''
-let socket=io('http://localhost:3000');
+let socket=io('https://filetransfer-ym3b.onrender.com');
 const CHUNK_SIZE = 16 * 1024;
 let fileChunks = [];
 const fileInput = document.getElementById('file')
@@ -14,6 +14,7 @@ fileReader = new FileReader();
 let offset = 0;
 let receiveBuffer = [];
 const BUFFER_FULL_THRESHOLD=20*1024*1024;
+const progressBar=document.getElementsByClassName('progressBar')[0]
 const peerConnection = new RTCPeerConnection(
   {
     iceServers: [{
@@ -21,9 +22,8 @@ const peerConnection = new RTCPeerConnection(
     }]
   }
 );
-const progressBar=document.getElementsByClassName('progressBar')[0]
-let computedStyle=getComputedStyle(progressBar)
-let width=parseFloat(computedStyle.getPropertyValue('--width')) || 0
+let computedStyle
+let width
 let dataConnection;
 let webRTCbuffer = []
 
@@ -171,11 +171,16 @@ function receiveData(e){
     filesize=data.size;
     selectedFileDisplay.textContent = `Selected file: ${fileName}`;
     document.getElementById('send').hidden=true
+    document.getElementsByClassName('progressIndicator')[0].style.display='flex';
+ computedStyle=getComputedStyle(progressBar)
+ width=parseFloat(computedStyle.getPropertyValue('--width')) || 0
   }
   else{
     receivedSize+=CHUNK_SIZE
     progressBar.style.setProperty('--width',`${(receivedSize/filesize)*100}`)
-    progressBar.dataset.data=`Downloading...   ${receivedSize/(1024*1024)}MB/${filesize/(1024*1024)}MB`
+    var receivedMB=receivedSize/(1024*1024)
+    var fileMB=filesize/(1024*1024)
+    progressBar.setAttribute('data',`Downloading...   ${receivedMB.toFixed(1)}MB/${fileMB.toFixed(1)}MB`)
     console.log(e)
   }
 }
@@ -234,10 +239,15 @@ const sendFile = async() => {
   dataConnection.send(JSON.stringify(data))
   let currentChunk=0;
   while(currentChunk*OFF_SET<=file.size){
+    
       let start=currentChunk*OFF_SET;
       let end=Math.min(file.size,start+OFF_SET);
       console.log(start,end);
       let arrayBuffer=await readFileAsArrayBuffer(file.slice(start,end));
+      progressBar.style.setProperty('--width',`${(end/file.size)*100}`)
+      var sendMB=end/(1024*1024)
+      var fileMB=file.size/(1024*1024)
+      progressBar.setAttribute('data',`Downloading...   ${sendMB.toFixed(1)}MB/${fileMB.toFixed(1)}MB`)
       // console.log(arrayBuffer);
       webRTCbuffer.push(arrayBuffer);
       currentChunk+=1;
@@ -258,6 +268,10 @@ document.getElementById("send").addEventListener("click", function handleClick()
   }
   document.getElementById('send').hidden=true
   this.removeEventListener('click',handleClick);
+  document.getElementsByClassName('progressIndicator')[0].style.display='flex';
+  
+ computedStyle=getComputedStyle(progressBar)
+ width=parseFloat(computedStyle.getPropertyValue('--width')) || 0
   console.log('clicked');
   sendFile()
 }
