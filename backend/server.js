@@ -3,6 +3,7 @@ import http from "http"
 import { Server } from "socket.io"
 import debug from "debug";
 import { customAlphabet } from 'nanoid'
+import * as e from 'express';
 
 
 
@@ -14,7 +15,7 @@ const server=http.createServer(app,{
 })
 const io=new Server(server,{
     cors:{
-        origin:"https://directdrop-ymtd5.ondigitalocean.app"
+        origin:"*"
     }
 })
 debug('socket.io')(io);
@@ -59,7 +60,6 @@ io.on("connection",(socket)=>{
                     peer:initiator,
                     iceCandidate:e.iceCandidate
                 }
-                console.log('Sending data ',data)
                 users[e.peer].socket.emit('wantToConnect',data);
                 console.log('sent offer to',e.peer)
                 users[initiator].connected='Connecting';
@@ -67,7 +67,7 @@ io.on("connection",(socket)=>{
                 users[e.peer].connected='Connecting';
                 users[e.peer].connectedTo=initiator;
                 users[initiator].socket.emit('connectionStatus',{
-                    code:0,
+                    code:2,
                     message:'Waiting for peer to accept connection'
                 })
              }
@@ -152,6 +152,16 @@ socket.on('closing',()=>{
         console.log(users)
     } catch (error) {
         console.log('Error while closing')
+    }
+})
+socket.on('iceCandidate',(e)=>{
+    var user=socketToUser[socket.id]
+    users[user].iceCandidate=e
+    if(users[user].connected!==false){
+        let peer=users[user].connectedTo
+        users[peer].socket.emit('newIceCandidate',{
+            peer:user,
+            iceCandidate:e})
     }
 })
 })

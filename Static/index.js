@@ -1,8 +1,9 @@
 let myId=''
 let connected=false
 let peerIceCandidate=''
+let iceC=[]
 let peerId=''
-let socket=io('https://filetransfer-ym3b.onrender.com');
+let socket=io('http://localhost:3000');
 const CHUNK_SIZE = 16 * 1024;
 let fileChunks = [];
 const fileInput = document.getElementById('file')
@@ -12,53 +13,71 @@ let file;
 fileReader = new FileReader();
 let offset = 0;
 let receiveBuffer = [];
-const peerConnection = new RTCPeerConnection();
+const BUFFER_FULL_THRESHOLD=20*1024*1024;
+const peerConnection = new RTCPeerConnection(
+  {
+    iceServers: [{
+      urls: "stun:stun.l.google.com:19302"
+    }]
+  }
+);
+const progressBar=document.getElementsByClassName('progressBar')[0]
+let computedStyle=getComputedStyle(progressBar)
+let width=parseFloat(computedStyle.getPropertyValue('--width')) || 0
 let dataConnection;
 let webRTCbuffer = []
 
 
+async function generateOffer(){
+  peerConnection.onicecandidate = (e)=>{
+    if (e.candidate){
+      socket.emit('iceCandidate',e.candidate)
+      console.log('ice candidate sent')
+    }
+  
+  }
+  dataConnection=peerConnection.createDataChannel('channel')
+  dataConnection.onopen=()=>{console.log('data connection opened')}
+  dataConnection.onmessage=async (e)=>{receiveData(e)}
+  // dataConnection.binaryType='arraybuffer';
+  dataConnection.bufferedAmountLowThreshold=5*1024*1024;
+  const offer=await peerConnection.createOffer()
+  peerConnection.setLocalDescription(new RTCSessionDescription(offer))
+  return offer
+}
 
-function initialwebRtc(){
-  dataConnection = peerConnection.createDataChannel('dataChannel');
-  dataConnection.onopen = () => console.log('peer connection open');
-  dataConnection.onmessage = (e) => document.getElementById('data').innerHTML = "Just got the message" + e.data;
-  peerConnection.onicecandidate = e => {console.log('ice candidate generate')};
-}
-async function localConnection(){
-  initialwebRtc()
-let offer=await peerConnection.createOffer()
-peerConnection.setLocalDescription(offer)
-return offer
-}
-function sendOffer (Id,offer) {
+function sendOffer(id,offer){
   var data={
-    peer:Id,
+    peer:id,
     iceCandidate:offer
   }
-  console.log(data)
-  socket.emit('peerConnect',data);
+  socket.emit('peerConnect',data)
 }
 
 async function generateAnswer(){
-  try {
-    let answer =await peerConnection.createAnswer()
-    peerConnection.setLocalDescription(answer)
+  peerConnection.ondatachannel=e=>{
+    peerConnection.dataChannel=e.channel
+    peerConnection.dataChannel.onmessage=async (e)=>{receiveData(e)}
+    peerConnection.dataChannel.onopen=()=>{console.log('data connection opened')}
+    // peerConnection.dataChannel.binaryType='arraybuffer';
+    peerConnection.dataChannel.bufferedAmountLowThreshold=5*1024*1024;
+  }
+    peerConnection.setRemoteDescription(new RTCSessionDescription(peerIceCandidate))
+    const answer=await peerConnection.createAnswer()
+    peerConnection.setLocalDescription(new RTCSessionDescription(answer))
     return answer
-  } catch (error) {
-    console.log('error while setting local description')
-  }
-  
 }
-function sendAnswer(ans){
-  data={
-    myId:myId,
-    peer:peerId,
-    iceCandidate:ans
 
+function sendAnswer(ans){
+  var data={
+    peer:peerId,
+    myId:myId,
+    iceCandidate:ans
   }
-  socket.emit('sendAnswer',data);
-  console.log('answer sent')
+  socket.emit('sendAnswer',data)
 }
+
+
 
 socket.on('connect',()=>{ console.log('connected')})
 socket.on("myId",(id)=>{
@@ -73,6 +92,16 @@ socket.on('connectionStatus',(e)=>{
     document.getElementById('connect').disabled=false
     document.getElementById('connect').innerHTML='Disconnect'
     connected=true
+    if (iceC.length>0){
+      iceC.forEach(e=>{
+        console.log(e)
+        if(e.peer==peerId){
+          peerConnection.addIceCandidate(new RTCIceCandidate(e.iceCandidate)).then(
+            ()=>console.log('added ice candidate')
+          )
+        }
+      })
+    }
   }
   else{
     if (e.message=='Disconnect'){
@@ -84,7 +113,10 @@ socket.on('connectionStatus',(e)=>{
       document.getElementById('connect').innerHTML='Connect';
     }
     else{
-      console.log('no user found');
+      if (e.code==2){
+        document.getElementById('message').innerHTML=e.message;
+        return
+      }
       document.getElementById('message').innerHTML=e.message;
       document.getElementById('connect').disabled=false;
       document.getElementById('connect').innerHTML='Connect';
@@ -93,76 +125,91 @@ socket.on('connectionStatus',(e)=>{
 
 })
 socket.on('wantToConnect',(e)=>{
-  console.log('received offer')
+  console.log('I got an offer')
   if (connected==false){
     document.getElementById('peersId').value=e.peer;
     console.log(e);
     peerIceCandidate=e.iceCandidate;
     peerId=e.peer;
+    console.log(peerIceCandidate)
   }
 })
 socket.on('setAnswer',(e)=>{
-  console.log('received answer')
+  console.log('I got the answer')
   try {
-      peerConnection.setRemoteDescription(e).then((e) => socket.emit('connectionEstablished',1));
+      peerConnection.setRemoteDescription(e).then((e) =>{
+        socket.emit('connectionEstablished',1)
+      });
       console.log('established')
   } catch (error) {
     console.log('something went wrong',error)
   }
 })
+socket.on('newIceCandidate',(e)=>{
+  console.log('New Ice Candidates Came')
+  if (connected==false){
+    console.log(e)
+    iceC.push(e)
+  }else{
+    if (e.peer==peerId){
+      peerConnection.addIceCandidate(new RTCIceCandidate(e.iceCandidate)).then(
+        ()=>console.log('added ice candidate')
+      )
+    }
+  }
+  
+})
 
+let fileName;
+let filesize;
+let receivedSize=0;
 
+function receiveData(e){
+  if (!fileName){
+    var data=JSON.parse(e.data)
+    fileName=data.file;
+    filesize=data.size;
+    selectedFileDisplay.textContent = `Selected file: ${fileName}`;
+    document.getElementById('send').hidden=true
+  }
+  else{
+    receivedSize+=CHUNK_SIZE
+    progressBar.style.setProperty('--width',`${(receivedSize/filesize)*100}`)
+    progressBar.dataset.data=`Downloading...   ${receivedSize/(1024*1024)}MB/${filesize/(1024*1024)}MB`
+    console.log(e)
+  }
+}
 
-
-
-
-
-
-
-
-
-
-
-// function generateAnswer() {
-//   offer = JSON.parse(document.getElementById('offer').value)
-//   peerConnection.ondatachannel = e => {
-//     peerConnection.dc = e.channel;
-//     peerConnection.dc.onmessage = e => rearrangeData(e);
-//     peerConnection.dc.onopen = e => document.getElementById('ans').innerHTML = 'This is receiver connected to sender with dataChannel';
-//   }
-//   peerConnection.setRemoteDescription(offer)
-//   peerConnection.createAnswer().then((data) => peerConnection.setLocalDescription(data).then((e) => document.getElementById('answer').innerHTML = JSON.stringify(peerConnection.localDescription)));
-// }
 
 function sendData() {
-    let message = webRTCbuffer.shift();
+  let message = webRTCbuffer.shift();
 
-    while (message) {
-      if (sendChannel.bufferedAmount && sendChannel.bufferedAmount > BUFFER_FULL_THRESHOLD) {
-        webRTCbuffer.unshift(message);
-  
-        const listener = () => {
-          dataConnection.removeEventListener('bufferedamountlow', listener);
-          sendMessageQueued();
-        };
-  
-        dataConnection.addEventListener('bufferedamountlow', listener);
-        return;
-      }
-      try {
-        sendChannel.send(message);
-        sendprogressbar.value += BYTES_PER_CHUNK;
-        if (sendprogressbar.value >= sendprogressbar.max) {
-          sendprogressbar.value = 0;
-          clearInterval(statsUpdateInterval);
-          sendButton.disabled = false;
-          sendInProgress = false;
-        }
-        message = webRTCMessageQueue.shift();
-      } catch (error) {
-        throw new Error(`Error send message, reason: ${error.name} - ${error.message}`);
-      }
+  while (message) {
+    if (dataConnection.bufferedAmount && dataConnection.bufferedAmount > BUFFER_FULL_THRESHOLD) {
+      webRTCbuffer.unshift(message);
+
+      const listener = () => {
+        dataConnection.removeEventListener('bufferedamountlow', listener);
+        sendData();
+      };
+
+      dataConnection.addEventListener('bufferedamountlow', listener);
+      return;
     }
+    try {
+      dataConnection.send(message);
+      // sendprogressbar.value += BYTES_PER_CHUNK;
+      // if (sendprogressbar.value >= sendprogressbar.max) {
+      //   sendprogressbar.value = 0;
+      //   clearInterval(statsUpdateInterval);
+      //   sendButton.disabled = false;
+      //   sendInProgress = false;
+      // }
+      message = webRTCbuffer.shift();
+    } catch (error) {
+      throw new Error(`Error send message, reason: ${error.name} - ${error.message}`);
+    }
+  }
 }
 
 
@@ -171,41 +218,51 @@ function sendData() {
 const OFF_SET = 16 * 1024
 const MAX_OFFSET = 10 * 1024 * 1024
 async function readFileAsArrayBuffer(f) {
-    let result_arraybuffer = await new Promise((resolve) => {
-        let fileReader = new FileReader();
-        fileReader.onload = (e) => resolve(fileReader.result);
-        fileReader.readAsArrayBuffer(f);
-    });
-    return result_arraybuffer;
-  }
-const sendFile = async() => {
-    file = fileInput.files[0];
-    
-    let currentChunk=0;
-    while(currentChunk*OFF_SET<=file.size){
-        let start=currentChunk*OFF_SET;
-        let end=Math.min(file.size,start+OFF_SET);
-        console.log(start,end);
-        let arrayBuffer=await readFileAsArrayBuffer(file.slice(start,end));
-        // console.log(arrayBuffer);
-        webRTCbuffer.push(arrayBuffer);
-        currentChunk+=1;
-        sendData();
-    }
- 
-
+  let result_arraybuffer = await new Promise((resolve) => {
+      let fileReader = new FileReader();
+      fileReader.onload = (e) => resolve(fileReader.result);
+      fileReader.readAsArrayBuffer(f);
+  });
+  return result_arraybuffer;
 }
+const sendFile = async() => {
+  file = fileInput.files[0];
+  var data={
+    file:file.name,
+    size:file.size,
+  }
+  dataConnection.send(JSON.stringify(data))
+  let currentChunk=0;
+  while(currentChunk*OFF_SET<=file.size){
+      let start=currentChunk*OFF_SET;
+      let end=Math.min(file.size,start+OFF_SET);
+      console.log(start,end);
+      let arrayBuffer=await readFileAsArrayBuffer(file.slice(start,end));
+      // console.log(arrayBuffer);
+      webRTCbuffer.push(arrayBuffer);
+      currentChunk+=1;
+      sendData();
+  }
+}
+
+
+
+
 document.getElementById("send").addEventListener("click", function handleClick() {
   if (!fileInput.files[0]){
     alert('Please select a file');
     return
   }
+  if(!dataConnection){
+    dataConnection=peerConnection.dataChannel
+  }
+  document.getElementById('send').hidden=true
   this.removeEventListener('click',handleClick);
   console.log('clicked');
-  
-  document.getElementById("send").setAttribute('src','../assets/disabledSend.png');
+  sendFile()
 }
 );
+
 fileInput.addEventListener('change', function () {
   const selectedFile = fileInput.files[0];
 
@@ -216,63 +273,21 @@ fileInput.addEventListener('change', function () {
   }
 });
 
-//
-// fileReader.addEventListener('load', e => {
-//   const file = fileInput.files[0];
-//   sendData(e.target.result);
-//   offset += e.target.result.byteLength;
-//   document.getElementById('data').innerHTML = `$${offset * CHUNK_SIZE} Completed remaining $${file.size}`;
-//   if (offset < file.size) {
-//     readSlice(offset);
-//   }
-//   else {
-//     document.getElementById('data').innerHTML = 'Transfer Complete';
-//   }
-// });
-//
-//
-// const readSlice = o => {
-//   const file = fileInput.files[0];
-//   const slice = file.slice(offset, o + CHUNK_SIZE);
-//   fileReader.readAsArrayBuffer(slice);
-// };
-//
-// function receivingData(data) {
-//
-//   receivedChunks.push(data);
-// }
-// function rearrangeData(event) {
-//   console.log(event);
-//   receiveBuffer.push(event.data);
-// }
-//
-// document.getElementById('download').addEventListener("click", () => {
-//   const received = new Blob(receiveBuffer);
-//   const downloadLink = document.createElement('a');
-//   downloadLink.href = URL.createObjectURL(received);
-//   downloadLink.download = 'assembled_file.pdf';
-//   document.body.appendChild(downloadLink);
-//   downloadLink.click();
-//   document.body.removeChild(downloadLink);
-// })
 
 document.getElementById('connect').addEventListener('click',async()=>{
   document.getElementById('message').innerHTML=''
   if (document.getElementById('connect').innerHTML=='Disconnect'){
     socket.emit('breakConnection',myId) 
   }else{
-    
   document.getElementById('connect').disabled=true
   document.getElementById('connect').innerHTML='Connecting'
   if(peerIceCandidate==''){
     var peersId=document.getElementById('peersId').value
     console.log('peers id is:',peersId)
-    var offer=await localConnection()
+    var offer=await generateOffer()
     sendOffer(peersId,offer)
 }
 else{
-  initialwebRtc()
-  peerConnection.setRemoteDescription(peerIceCandidate)
   var answer=await generateAnswer()
   sendAnswer(answer)
 }
