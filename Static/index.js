@@ -26,7 +26,7 @@ let computedStyle
 let width
 let dataConnection;
 let webRTCbuffer = []
-
+let receivedFileData=[]
 
 async function generateOffer(){
   peerConnection.onicecandidate = (e)=>{
@@ -39,7 +39,7 @@ async function generateOffer(){
   dataConnection=peerConnection.createDataChannel('channel')
   dataConnection.onopen=()=>{console.log('data connection opened')}
   dataConnection.onmessage=async (e)=>{receiveData(e)}
-  // dataConnection.binaryType='arraybuffer';
+  dataConnection.binaryType='arraybuffer';
   dataConnection.bufferedAmountLowThreshold=5*1024*1024;
   const offer=await peerConnection.createOffer()
   peerConnection.setLocalDescription(new RTCSessionDescription(offer))
@@ -59,7 +59,7 @@ async function generateAnswer(){
     peerConnection.dataChannel=e.channel
     peerConnection.dataChannel.onmessage=async (e)=>{receiveData(e)}
     peerConnection.dataChannel.onopen=()=>{console.log('data connection opened')}
-    // peerConnection.dataChannel.binaryType='arraybuffer';
+    peerConnection.dataChannel.binaryType='arraybuffer';
     peerConnection.dataChannel.bufferedAmountLowThreshold=5*1024*1024;
   }
     peerConnection.setRemoteDescription(new RTCSessionDescription(peerIceCandidate))
@@ -176,12 +176,27 @@ function receiveData(e){
  width=parseFloat(computedStyle.getPropertyValue('--width')) || 0
   }
   else{
-    receivedSize+=CHUNK_SIZE
+    receivedSize+=e.data.byteLength;
     progressBar.style.setProperty('--width',`${(receivedSize/filesize)*100}`)
     var receivedMB=receivedSize/(1024*1024)
     var fileMB=filesize/(1024*1024)
     progressBar.setAttribute('data',`Downloading...   ${receivedMB.toFixed(1)}MB/${fileMB.toFixed(1)}MB`)
-    console.log(e)
+    receivedFileData.push(e.data)
+    if(receivedSize>=filesize){
+      var blob = new Blob(receivedFileData, {type: 'application/octet-stream'});
+      var link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = fileName;
+      link.click();
+      document.getElementById('send').hidden=false
+      document.getElementsByClassName('progressIndicator')[0].style.display='none';
+      fileName=null;
+      filesize=null;
+      receivedSize=0;
+      receivedFileData=[]
+      selectedFileDisplay.textContent='File Downloaded Successfully!!!'
+    }
+    
   }
 }
 
@@ -203,13 +218,6 @@ function sendData() {
     }
     try {
       dataConnection.send(message);
-      // sendprogressbar.value += BYTES_PER_CHUNK;
-      // if (sendprogressbar.value >= sendprogressbar.max) {
-      //   sendprogressbar.value = 0;
-      //   clearInterval(statsUpdateInterval);
-      //   sendButton.disabled = false;
-      //   sendInProgress = false;
-      // }
       message = webRTCbuffer.shift();
     } catch (error) {
       throw new Error(`Error send message, reason: ${error.name} - ${error.message}`);
@@ -218,7 +226,7 @@ function sendData() {
 }
 
 
-// document.getElementById('Send').addEventListener("click", () => { readSlice(0) });
+
 
 const OFF_SET = 16 * 1024
 const MAX_OFFSET = 10 * 1024 * 1024
@@ -253,6 +261,11 @@ const sendFile = async() => {
       currentChunk+=1;
       sendData();
   }
+  selectedFileDisplay.textContent = 'File sent Successfully!!!';
+  document.getElementById('send').hidden=false
+  document.getElementsByClassName('progressIndicator')[0].style.display='none';
+  file=''
+  fileInput = document.getElementById('file')
 }
 
 
@@ -267,7 +280,6 @@ document.getElementById("send").addEventListener("click", function handleClick()
     dataConnection=peerConnection.dataChannel
   }
   document.getElementById('send').hidden=true
-  this.removeEventListener('click',handleClick);
   document.getElementsByClassName('progressIndicator')[0].style.display='flex';
   
  computedStyle=getComputedStyle(progressBar)
