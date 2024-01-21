@@ -168,10 +168,12 @@ socket.on("setAnswer", (e) => {
   }
 });
 socket.on("newIceCandidate", (e) => {
+  console.log('received ice candidate',e)
   if (connected == false) {
     iceC.push(e);
   } else {
     if (e.peer == peerId) {
+      console.log(e.peer==peerId)
       peerConnection
         .addIceCandidate(new RTCIceCandidate(e.iceCandidate))
         .then(() => console.log("added ice candidate"));
