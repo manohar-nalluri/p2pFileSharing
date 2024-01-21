@@ -34,6 +34,7 @@ function createPeerConnection(){
 async function generateOffer() {
   peerConnection=createPeerConnection()
   peerConnection.onicecandidate = (e) => {
+    console.log('Ice Candidate generated',e.candidate)
     if (e.candidate) {
       socket.emit("iceCandidate", e.candidate);
     }
@@ -67,6 +68,7 @@ function sendOffer(id, offer) {
 async function generateAnswer() {
   peerConnection=createPeerConnection()
   peerConnection.onicecandidate = (e) => {
+    console.log('Ice Candidate generated',e.candidate)
     if (e.candidate) {
       socket.emit("iceCandidate", e.candidate);
     }
