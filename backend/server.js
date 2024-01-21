@@ -3,7 +3,6 @@ import http from "http"
 import { Server } from "socket.io"
 import debug from "debug";
 import { customAlphabet } from 'nanoid'
-import * as e from 'express';
 
 
 
@@ -158,11 +157,24 @@ socket.on('iceCandidate',(e)=>{
     var user=socketToUser[socket.id]
     users[user].iceCandidate=e
     if(users[user].connected!==false){
-        let peer=users[user].connectedTo
+        var peer=users[user].connectedTo
         users[peer].socket.emit('newIceCandidate',{
             peer:user,
             iceCandidate:e})
     }
+})
+socket.on('offerAccepted',()=>{
+    try {
+        var user=socketToUser[socket.id]
+        var peer=users[user].connectedTo
+        users[peer].socket.emit('connectionStatus',{
+            code:1,
+            message:'Connecting...'
+        })
+    } catch (error) {
+        console.log('Error while accepting offer')
+    }
+   
 })
 })
 
