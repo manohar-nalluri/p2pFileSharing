@@ -29,7 +29,6 @@ function createPeerConnection(){
       },
     ],
   });
-  return peerConnection;
 }
 async function generateOffer() {
   peerConnection=createPeerConnection()
@@ -90,6 +89,15 @@ async function generateAnswer() {
   );
   const answer = await peerConnection.createAnswer();
   peerConnection.setLocalDescription(new RTCSessionDescription(answer));
+  if (iceC.length > 0) {
+    iceC.forEach((e) => {
+      if (e.peer == peerId) {
+        peerConnection
+          .addIceCandidate(new RTCIceCandidate(e.iceCandidate))
+          .then(() => console.log("added ice candidate"));
+      }
+    });
+  }
   return answer;
 }
 
@@ -120,15 +128,7 @@ socket.on("connectionStatus", (e) => {
     document.getElementById("connect").disabled = false;
     document.getElementById("connect").innerHTML = "Disconnect";
     connected = true;
-    if (iceC.length > 0) {
-      iceC.forEach((e) => {
-        if (e.peer == peerId) {
-          peerConnection
-            .addIceCandidate(new RTCIceCandidate(e.iceCandidate.candidate))
-            .then(() => console.log("added ice candidate"));
-        }
-      });
-    }
+    
   } else {
     if (e.message == "Disconnect") {
       connected = false;
@@ -175,7 +175,7 @@ socket.on("newIceCandidate", (e) => {
     if (e.peer == peerId) {
       console.log(e.peer==peerId)
       peerConnection
-        .addIceCandidate(new RTCIceCandidate(e.iceCandidate.candidate))
+        .addIceCandidate(new RTCIceCandidate(e.iceCandidate))
         .then(() => console.log("added ice candidate"));
     }
   }
