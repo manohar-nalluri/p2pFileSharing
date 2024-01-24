@@ -22,7 +22,7 @@ let dataConnection;
 let webRTCbuffer = [];
 let receivedFileData = [];
 function createPeerConnection(){
-  var peerConnection = new RTCPeerConnection({
+  return new RTCPeerConnection({
     iceServers: [
       {
         urls: "stun:stun.l.google.com:19302",
@@ -124,7 +124,7 @@ socket.on("connectionStatus", (e) => {
       iceC.forEach((e) => {
         if (e.peer == peerId) {
           peerConnection
-            .addIceCandidate(new RTCIceCandidate(e.iceCandidate))
+            .addIceCandidate(new RTCIceCandidate(e.iceCandidate.candidate))
             .then(() => console.log("added ice candidate"));
         }
       });
@@ -175,7 +175,7 @@ socket.on("newIceCandidate", (e) => {
     if (e.peer == peerId) {
       console.log(e.peer==peerId)
       peerConnection
-        .addIceCandidate(new RTCIceCandidate(e.iceCandidate))
+        .addIceCandidate(new RTCIceCandidate(e.iceCandidate.candidate))
         .then(() => console.log("added ice candidate"));
     }
   }
