@@ -1,6 +1,10 @@
-# [DirectDrop](https://directdrop-ymtd5.ondigitalocean.app)
+
+<div align="center"><a href="https://directdrop-ymtd5.ondigitalocean.app">
+  <img width="600" src="Static/assets/directDrop1.png" alt="Spotube Logo"></a>
+  
 
 Welcome to DirectDrop – a WebRTC-based file-sharing platform using Socket.io for real-time communication.
+</div>
 
 ## Try it Out
 
@@ -9,6 +13,14 @@ Access DirectDrop [here](https://directdrop-ymtd5.ondigitalocean.app).
 ## Overview
 
 DirectDrop allows users to share files across the internet in real-time using the WebRTC framework. The platform establishes peer-to-peer connections through Socket.io, enabling secure and efficient file transfers between users.
+
+## Functionality
+
+
+https://github.com/manohar-nalluri/p2pFileSharing/assets/58913310/680cd908-e2b1-4093-90db-4e608ea9f7d6
+
+
+
 
 ## Features
 
